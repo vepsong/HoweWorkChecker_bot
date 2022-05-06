@@ -39,7 +39,7 @@ def check_tokens():
             return False
 
 
-RETRY_TIME = 600
+RETRY_TIME = (10 * 60)
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -124,9 +124,10 @@ def parse_status(homework):
 
 
 def main():
-    """Main bot logic."""
+    """Основная логика работы бота."""
     logging.info("Запускаем бота")
     current_timestamp = int(time.time())
+    old_message = None
 
     while check_tokens() is True:
         bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -137,24 +138,22 @@ def main():
             )
             message = parse_status(new_HW[0])
             logging.info("Функция parse_status сработала успешно")
-            send_message(
-                bot,
-                message
-            )
-
-            time.sleep(RETRY_TIME)
-
-            last_timestamp = new_HW['current_date']
-            if last_timestamp:
-                current_timestamp = last_timestamp
 
         except Exception as error:
-
-            logging.error(f"Статус домашней работы: {error}")
             message = (f'{error}')
-            send_message(bot, message)
 
-            time.sleep(RETRY_TIME)
+        finally:
+
+            logging.info(f'{message}')
+
+            # пользователь получает только уникальные сообщения
+            if old_message != message:
+                send_message(bot, message)
+                old_message = message
+                time.sleep(RETRY_TIME)
+            else:
+                time.sleep(RETRY_TIME)
+
     else:
         logging.error("Ошибка в токенах переменной окружения")
 
