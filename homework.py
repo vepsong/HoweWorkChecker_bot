@@ -66,25 +66,24 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     # params = {'from_date': 0}
 
-    logging.info('Отправляем api-запрос')
-    response = requests.get(
-        ENDPOINT,
-        params=params,
-        headers=HEADERS,
-    )
+    try:
+        logging.info('Отправляем api-запрос')
+        response = requests.get(
+            ENDPOINT,
+            params=params,
+            headers=HEADERS,
+        )
+    except ValueError as error:
+        logging.error(f'{error}: не получили api-ответ')
+        raise error
+    mistake_message = (f'Проблемы соединения с сервером.'
+                       f' Ошибка {response.status_code}')
 
-    if response.status_code != requests.codes.ok:
-        if response.status_code == requests.codes.bad_request:
-            logging.error('Ошибка 400')
-            raise TypeError('Ошибка 400')
-        elif response.status_code == requests.codes.unauthorized:
-            logging.error('Ошибка 401')
-            raise TypeError('Ошибка 401')
-        else:
-            logging.error('Проблемы соединения с сервером')
-            raise TypeError('Проблемы соединения с сервером')
-    elif response.status_code == requests.codes.ok:
+    if response.status_code == requests.codes.ok:
         return response.json()
+    elif response.status_code != requests.codes.ok:
+        logging.error(mistake_message)
+        raise TypeError(mistake_message)
 
 
 def check_response(response):
@@ -151,7 +150,7 @@ def main():
 
         except Exception as error:
 
-            logging.error(f"Bot error: {error}")
+            logging.error(f"Статус домашней работы: {error}")
             message = (f'{error}')
             send_message(bot, message)
 
