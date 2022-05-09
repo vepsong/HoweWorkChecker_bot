@@ -151,4 +151,4 @@ posts/static/
 media/
 
 #logs
-*.log
+*.log[1-9]
