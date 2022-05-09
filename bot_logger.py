@@ -11,8 +11,8 @@ logger.setLevel(logging.DEBUG)
 file_handler = RotatingFileHandler(
     "homework_bot.log",
     mode="w",
-    maxBytes=(1024 * 1)
-    # backupCount=1
+    maxBytes=(1024 * 1),
+    backupCount=1
 )
 
 # установка уровня логирования обработчика
