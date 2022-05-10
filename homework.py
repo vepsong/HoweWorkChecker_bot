@@ -176,6 +176,7 @@ class run_count:
     counter = 0
 
     def __init__(self):
+        """Инициализация переменных."""
         run_count.counter += 1
         print(run_count.counter)
 
