@@ -4,42 +4,39 @@ import os
 import sys
 import time
 
-from exceptions import get_api_answer_error
+from exceptions import GetApiAnswerError, ParseStatusError
 from dotenv import load_dotenv
 import requests
 import telegram
 
 
-# создание логгера
 logger = logging.getLogger(__name__)
-# установка уровня логирования
 logger.setLevel(logging.DEBUG)
 
-# создание обработчика с логированием в файл
+cons_handler = logging.StreamHandler()
+cons_handler.setLevel(logging.DEBUG)
+
 file_handler = RotatingFileHandler(
-    "homework_bot.log",
+    __file__ + ".log",
     mode="w",
     maxBytes=(1024 * 100),
     backupCount=1
 )
 
-# установка уровня логирования обработчика
 file_handler.setLevel(logging.DEBUG)
 
-# создание шаблона отображения
 formatter = logging.Formatter(
     '%(asctime)s, %(levelname)s, %(funcName)s, '
     '%(lineno)s, %(message)s, %(name)s'
 )
 
-# связвание обработчиков с шаблоном форматирования
 file_handler.setFormatter(formatter)
+cons_handler.setFormatter(formatter)
 
-# добавление обработчика логгеру
 logger.addHandler(file_handler)
+logger.addHandler(cons_handler)
 
 
-# загружаю переменные среды окружения
 load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -65,12 +62,12 @@ def check_tokens():
         logger.debug("Все env-переменные на месте")
         return True
     elif none_env_vars_list:
-        logger.critical(f"Отсутствует env-переменная {none_env_vars_list}")
+        logger.critical(f"Отсутствует env-переменные {none_env_vars_list}")
         return False
 
 
 RETRY_TIME = (5)
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statusesZ/'
+ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 HOMEWORK_STATUSES = {
@@ -85,9 +82,9 @@ def send_message(bot, message):
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info('Отправили сообщение')
-    except telegram.error.BadRequest as error:
+    except telegram.TelegramError:
         logger.error(
-            (f"Не смогли отправить сообщение: {error}"),
+            ("Не смогли отправить сообщение"),
             exc_info=True
         )
 
@@ -116,7 +113,7 @@ def get_api_answer(current_timestamp):
             exc_info=True
         )
 
-        raise error
+        raise GetApiAnswerError
 
     mistake_message = (f'Проблемы соединения с сервером.'
                        f' Ошибка {response.status_code}')
@@ -128,7 +125,7 @@ def get_api_answer(current_timestamp):
             mistake_message,
             exc_info=True
         )
-        raise get_api_answer_error(mistake_message)
+        raise GetApiAnswerError(mistake_message)
 
 
 def check_response(response):
@@ -164,33 +161,9 @@ def parse_status(homework):
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
     else:
         logger.error(Exception)
-        raise Exception(
+        raise ParseStatusError(
             f"Не могу получить статус домашней работы: '{homework_name}'."
         )
-
-
-class run_count:
-    """Подсчёт кол-ва запусков программы."""
-
-    stop = 3
-    counter = 0
-
-    def __init__(self):
-        """Инициализация переменных."""
-        run_count.counter += 1
-        print(run_count.counter)
-
-        if run_count.stop == run_count.counter:
-            logger.error("Программа окончательно остановлена")
-            run_count.counter = 0
-            raise sys.exit(1)
-        else:
-            logger.debug(
-                f"Попытка перезапустить программу N: {run_count.counter} "
-                f"из {run_count.stop}"
-            )
-            time.sleep(RETRY_TIME)
-            main()
 
 
 class compare_messages:
@@ -223,24 +196,20 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
     if check_tokens() is False:
-        logger.info("Программа временно остановлена")
-        logger.debug(
-            f"Ждём {RETRY_TIME} сек и пробуем запустить программу заново"
-        )
-        # фиксируем факт неудачного запуска программы
-        run_count()
+        logger.critical("Программа остановлена")
+        sys.exit(1)
 
     while True:
 
         try:
-            new_HW = check_response(get_api_answer(current_timestamp))
+            new_hw = check_response(get_api_answer(current_timestamp))
             logger.info(
                 "Функции get_api_answer и check_response сработали успешно"
             )
-            message = parse_status(new_HW[0])
+            message = parse_status(new_hw[0])
             logger.info("Функция parse_status сработала успешно")
 
-        except get_api_answer_error as error:
+        except GetApiAnswerError as error:
             message = (f'{error}')
 
         except Exception as error:
