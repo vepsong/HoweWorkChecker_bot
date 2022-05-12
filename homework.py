@@ -66,7 +66,7 @@ def check_tokens():
         return False
 
 
-RETRY_TIME = (5)
+RETRY_TIME = (10 * 60)
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -84,7 +84,7 @@ def send_message(bot, message):
         logger.info('Отправили сообщение')
     except telegram.TelegramError:
         logger.error(
-            ("Не смогли отправить сообщение"),
+            "Не смогли отправить сообщение",
             exc_info=True
         )
 
@@ -166,7 +166,7 @@ def parse_status(homework):
         )
 
 
-class compare_messages:
+class CompareMessages:
     """Сравниваем сообщения."""
 
     old_message = None
@@ -177,14 +177,14 @@ class compare_messages:
 
     def comparing(self):
         """Сравниваем старое и новое сообщения между собой."""
-        logger.debug(f'Предыдущее сообщение {compare_messages.old_message}')
+        logger.debug(f'Предыдущее сообщение {CompareMessages.old_message}')
         logger.debug(f'Текущее сообщение {self.message}')
 
-        if compare_messages.old_message != self.message:
+        if CompareMessages.old_message != self.message:
             logger.info('Старое сообщение отличается от текущего сообщения')
-            compare_messages.old_message = self.message
+            CompareMessages.old_message = self.message
             return True
-        elif compare_messages.old_message == self.message:
+        elif CompareMessages.old_message == self.message:
             logger.info('Старое сообщение не отличается от текущего сообщения')
             return False
 
@@ -219,7 +219,7 @@ def main():
             # сравниваем полученные сообщения между собой
             # если сообщение содержит новую инфо — отправляем его пользователю
             # если нет — логгируем
-            if compare_messages(message).comparing() is True:
+            if CompareMessages(message).comparing() is True:
                 send_message(bot, message)
 
             time.sleep(RETRY_TIME)
