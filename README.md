@@ -1,2 +1,3 @@
-# homework_bot
-python telegram bot
+# HoweWorkChecker_bot
+
+This bot checks your homework status
